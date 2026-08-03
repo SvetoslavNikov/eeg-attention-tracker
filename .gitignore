@@ -1,0 +1,51 @@
+# Raw datasets (large binaries / recordings)
+/data/
+
+# Generated plot images and numeric dumps (keep notes.md + folder structure)
+attention-tracker/outputs/**/plots/**
+!attention-tracker/outputs/**/plots/.gitkeep
+attention-tracker/outputs/**/*.png
+attention-tracker/outputs/**/*.pdf
+attention-tracker/outputs/**/*.svg
+attention-tracker/outputs/**/*.csv
+attention-tracker/outputs/**/*.npy
+attention-tracker/outputs/**/*.npz
+attention-tracker/outputs/**/*.h5
+attention-tracker/outputs/**/*.pkl
+attention-tracker/outputs/**/*.pickle
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+credentials.json

@@ -1,0 +1,5 @@
+# project dependencies (fill in as needed)
+numpy
+scipy
+matplotlib
+mne
