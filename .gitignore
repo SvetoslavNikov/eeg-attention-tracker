@@ -49,3 +49,6 @@ Thumbs.db
 !.env.example
 *.pem
 credentials.json
+
+
+.old_stuff/
