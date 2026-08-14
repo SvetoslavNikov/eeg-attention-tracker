@@ -52,3 +52,4 @@ credentials.json
 
 
 .old_stuff/
+.venv/
