@@ -13,8 +13,8 @@ def clean(
     *,
     fmin: float = 0.5,
     fmax: float = 40.0,
-    artifact_z: float = 8.0,
-    interp_max_samples: int | None = None,
+    artifact_z: float = 8.0, #?
+    interp_max_samples: int | None = None, #?
 ) -> EEGSession:
     """Band-pass and suppress large artifacts; return a new session.
 
@@ -24,6 +24,11 @@ def clean(
       changing length or channel count.
 
     Absolute µV thresholds are not used (LYS exports are not calibrated).
+
+    Or more simply said:
+    - filter for frequencies
+    - detect abnormal values (potential artifacts)
+    - change the value through linear interpolation
     """
     x = np.array(session.data, dtype=np.float64, copy=True)
     fs = session.fs
@@ -49,8 +54,8 @@ def clean(
         if mad <= 0:
             continue
         # consistent with approx normal: sigma ≈ 1.4826 * MAD
-        thr = artifact_z * 1.4826 * mad
-        bad = np.abs(col - med) > thr
+        thr = artifact_z * 1.4826 * mad # treshhold
+        bad = np.abs(col - med) > thr # this creates array
         if not np.any(bad):
             continue
         x[:, ch] = _interp_mask(col, bad, max_run=interp_max_samples)

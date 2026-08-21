@@ -24,12 +24,25 @@ class EEGSession:
             e.g. {\"baseline\": (t0, t1), \"localizer\": (...), \"task\": (...)}.
             Empty dict if no protocol log was provided.
         source_path: Path to the .npz this was loaded from.
+
+        example:
+    data.shape  : (644381, 4)  dtype=float64
+    fs           : 500.000158 Hz
+    ch_names     : ('AF4', 'AF3', 'FCz', 'CPz')
+    time[0],[-1] : -0.246646, 1288.512947
+    subject_id   : P33
+    study_id     : bb05ebe
+    phases       :
+        baseline  [    3.38,    63.40]  (60.0 s)
+        localizer [   63.40,   231.87]  (168.5 s)
+        task      [  233.48,  1284.67]  (1051.2 s)
+    source_path  : ...
     """
 
     data: np.ndarray
     fs: float
     ch_names: tuple[str, str, str, str]
-    time: np.ndarray
+    time: np.ndarray  # -0.246646, 1288.512947
     subject_id: str
     study_id: str
     phases: dict[str, tuple[float, float]] = field(default_factory=dict)

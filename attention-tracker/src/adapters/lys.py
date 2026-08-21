@@ -24,8 +24,8 @@ _PHASE_END = {
 
 
 def load_lys(
-    npz_path: str | Path,
-    jsonl_path: str | Path | None = None,
+        npz_path: str | Path,
+        jsonl_path: str | Path | None = None,
 ) -> EEGSession:
     """Load a LYS ``EEG_RAW_*.npz`` file.
 
@@ -39,7 +39,7 @@ def load_lys(
         Validated ``EEGSession`` with channels in canonical order.
     """
     npz_path = Path(npz_path)
-    raw = np.load(npz_path, allow_pickle=True)
+    raw = np.load(npz_path, allow_pickle=True) #Map<String, ArrayList<Object>>
 
     data = np.asarray(raw["data"], dtype=np.float64)
     if data.ndim != 2 or data.shape[1] != 4:
@@ -110,10 +110,10 @@ def _parse_jsonl_events(path: Path) -> list[dict]:
 
 
 def _phases_from_jsonl(
-    path: Path,
-    *,
-    eeg_t0: float,
-    eeg_t1: float,
+        path: Path,
+        *,
+        eeg_t0: float,
+        eeg_t1: float,
 ) -> dict[str, tuple[float, float]]:
     """Map protocol phase events onto EEG seconds.
 
