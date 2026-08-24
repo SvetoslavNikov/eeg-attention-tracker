@@ -7,4 +7,4 @@
 - mean attention (z): -0.000
 - baseline alpha: 2.624e+05
 - baseline theta: 2.297e+06
-- plot: `attention_score.png`
+- plot: `attention_score.html`

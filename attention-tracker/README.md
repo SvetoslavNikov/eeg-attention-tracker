@@ -22,7 +22,9 @@ PYTHONPATH=src python scripts/run_score.py \
 PYTHONPATH=src python scripts/run_score.py --all-lys
 ```
 
-Plots and notes land under `outputs/lys_data/.../attention/`.
+Opens an interactive plot in the browser (zoom, pan, hover for mm:ss values).
+HTML + notes land under `outputs/lys_data/.../attention/`. Use `--no-show` to
+save without opening.
 
 ## Pipeline
 

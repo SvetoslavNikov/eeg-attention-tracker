@@ -57,6 +57,7 @@ def run_one(
     jsonl_path: Path | None = None,
     *,
     skip_clean: bool = False,
+    show: bool = True,
 ) -> Path:
     session = load_lys(npz_path, jsonl_path=jsonl_path)
     if not skip_clean:
@@ -65,8 +66,8 @@ def run_one(
 
     out_dir = _output_dir_for(npz_path)
     out_dir.mkdir(parents=True, exist_ok=True)
-    plot_path = out_dir / "attention_score.png"
-    plot_attention(result, session, save_path=plot_path)
+    plot_path = out_dir / "attention_score.html"
+    plot_attention(result, session, save_path=plot_path, show=show)
 
     notes = out_dir / "notes.md"
     phase_str = ", ".join(
@@ -104,6 +105,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Run all known LYS sessions under data/lys_data/",
     )
     p.add_argument("--skip-clean", action="store_true")
+    p.add_argument(
+        "--no-show",
+        action="store_true",
+        help="Save the HTML plot but do not open a browser window",
+    )
     args = p.parse_args(argv)
 
     if args.all_lys:
@@ -112,12 +118,17 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"SKIP missing {folder}")
                 continue
             npz = _find_npz(folder)
-            run_one(npz, skip_clean=args.skip_clean)
+            run_one(npz, skip_clean=args.skip_clean, show=False)
         return 0
 
     if args.npz is None:
         p.error("provide npz path or --all-lys")
-    run_one(args.npz, jsonl_path=args.jsonl, skip_clean=args.skip_clean)
+    run_one(
+        args.npz,
+        jsonl_path=args.jsonl,
+        skip_clean=args.skip_clean,
+        show=not args.no_show,
+    )
     return 0
 
 
