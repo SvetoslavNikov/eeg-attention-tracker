@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import numpy as np
@@ -24,6 +25,7 @@ class AttentionResult:
     baseline_theta: float
     subject_id: str
     study_id: str
+    channels: tuple[str, ...] = ()
 
 
 def score_attention(
@@ -31,10 +33,11 @@ def score_attention(
     *,
     window_sec: float = 2.0,
     hop_sec: float = 0.5,
-    channels: tuple[str, ...] = ("AF3", "AF4"),
+    channels: Sequence[str] | None = None,
+    reduce: str | None = None,
     baseline_fallback_sec: float = 60.0,
 ) -> AttentionResult:
-    """Continuous engagement-style score from frontal alpha/theta power.
+    """Continuous engagement-style score from alpha/theta power.
 
     Formula (v1, transparent):
         alpha_rel = alpha / baseline_alpha
@@ -45,17 +48,23 @@ def score_attention(
     Higher score ≈ more theta relative to baseline and less alpha relative
     to baseline (classic active / engaged sketch). Not a validated classifier.
 
+    Channels: AF3+AF4 when both exist, otherwise every channel. Unlabeled
+    montages reduce with median so a noisy site does not dominate.
+
     Baseline: ``session.phases[\"baseline\"]`` if present, else first
     ``baseline_fallback_sec`` seconds of the recording.
     """
+    ch = _resolve_channels(session, channels)
+    red = _resolve_reduce(ch, reduce)
     bp = session_band_powers(
         session,
-        channels=channels,
+        channels=ch,
         window_sec=window_sec,
         hop_sec=hop_sec,
+        reduce=red,
     )
     return score_from_band_powers(
-        session, bp, baseline_fallback_sec=baseline_fallback_sec
+        session, bp, baseline_fallback_sec=baseline_fallback_sec, channels=ch
     )
 
 
@@ -64,6 +73,7 @@ def score_from_band_powers(
     bp: SessionBandPowers,
     *,
     baseline_fallback_sec: float = 60.0,
+    channels: Sequence[str] | None = None,
 ) -> AttentionResult:
     if "alpha" not in bp.powers or "theta" not in bp.powers:
         raise ValueError("band powers must include 'alpha' and 'theta'")
@@ -108,6 +118,7 @@ def score_from_band_powers(
         baseline_theta=baseline_theta,
         subject_id=session.subject_id,
         study_id=session.study_id,
+        channels=tuple(channels) if channels is not None else tuple(bp.per_channel),
     )
 
 
@@ -118,3 +129,22 @@ def _baseline_window(
         return session.phases["baseline"]
     t_start = float(session.time[0])
     return t_start, t_start + fallback_sec
+
+
+def _resolve_channels(
+    session: EEGSession, channels: Sequence[str] | None
+) -> tuple[str, ...]:
+    if channels is not None:
+        return tuple(channels)
+    names = session.ch_names
+    if "AF3" in names and "AF4" in names:
+        return ("AF3", "AF4")
+    return tuple(names)
+
+
+def _resolve_reduce(channels: Sequence[str], reduce: str | None) -> str:
+    if reduce is not None:
+        return reduce
+    if tuple(channels) == ("AF3", "AF4"):
+        return "mean"
+    return "median"

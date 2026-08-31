@@ -1,4 +1,4 @@
-"""Run sliding band power on LYS 4-channel sessions."""
+"""Run sliding band power on an EEGSession."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ class SessionBandPowers:
 
     Attributes:
         t: Window center times in EEG seconds (aligned to session.time[0]).
-        powers: dict band_name -> array (n_windows,) — mean over selected channels.
+        powers: dict band_name -> array (n_windows,) — reduced over selected channels.
         per_channel: dict channel -> dict band -> (n_windows,)
         window_sec: Window length used.
         hop_sec: Hop used.
@@ -38,15 +38,26 @@ def session_band_powers(
     window_sec: float = 2.0,
     hop_sec: float = 0.5,
     bands: Mapping[str, tuple[float, float]] | None = None,
+    reduce: str = "mean",
 ) -> SessionBandPowers:
-    """Sliding band power; average selected channels into one power series per band.
+    """Sliding band power; reduce selected channels into one power series per band.
 
-    Default channels: AF3, AF4 (frontal pair for engagement-style features).
+    Default channels: AF3, AF4 when both exist, otherwise every channel.
+    ``reduce`` is ``mean`` (LYS frontal pair) or ``median`` (unlabeled montages).
     ``offset_sec`` from the 1D scorer is relative to sample 0; we shift by
     ``session.time[0]`` so times match EEG / phase axes.
     """
+    if reduce not in ("mean", "median"):
+        raise ValueError(f"reduce must be 'mean' or 'median', got {reduce!r}")
     band_map = dict(bands) if bands is not None else dict(ATTENTION_BANDS)
-    ch_list = list(channels) if channels is not None else ["AF3", "AF4"]
+    if channels is not None:
+        ch_list = list(channels)
+    elif "AF3" in session.ch_names and "AF4" in session.ch_names:
+        ch_list = ["AF3", "AF4"]
+    else:
+        ch_list = list(session.ch_names)
+    if not ch_list:
+        raise ValueError("no channels selected")
 
     per_channel: dict[str, dict[str, np.ndarray]] = {}
     t_rel: np.ndarray | None = None
@@ -79,7 +90,10 @@ def session_band_powers(
     powers: dict[str, np.ndarray] = {}
     for b in band_map:
         stack = np.stack([per_channel[ch][b] for ch in ch_list], axis=0)
-        powers[b] = np.mean(stack, axis=0)
+        if reduce == "median":
+            powers[b] = np.median(stack, axis=0)
+        else:
+            powers[b] = np.mean(stack, axis=0)
 
     return SessionBandPowers(
         t=t,

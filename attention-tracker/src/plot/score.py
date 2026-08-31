@@ -15,6 +15,24 @@ PHASE_COLORS = {
     "baseline": "#94a3b8",
     "localizer": "#fb7185",
     "task": "#38bdf8",
+    "listen": "#38bdf8",
+    "wander": "#f59e0b",
+    "blink": "#fb7185",
+    "jaw": "#f43f5e",
+    "nod": "#e11d48",
+    "eyes": "#ec4899",
+}
+
+_ANNOTATE = {
+    "baseline",
+    "localizer",
+    "task",
+    "listen",
+    "wander",
+    "blink",
+    "jaw",
+    "nod",
+    "eyes",
 }
 
 _PLOT_CONFIG = {
@@ -243,10 +261,10 @@ def _build_figure(
 
 def _add_phases(fig: go.Figure, session: EEGSession) -> None:
     for name, (start, end) in session.phases.items():
-        color = PHASE_COLORS.get(name, "#a78bfa")
+        color = _phase_color(name)
         for row in (1, 2, 3):
             extra = {}
-            if row == 1:
+            if row == 1 and name in _ANNOTATE:
                 extra = dict(
                     annotation_text=name,
                     annotation_position="top left",
@@ -264,6 +282,14 @@ def _add_phases(fig: go.Figure, session: EEGSession) -> None:
                 col=1,
                 **extra,
             )
+
+
+def _phase_color(name: str) -> str:
+    if name in PHASE_COLORS:
+        return PHASE_COLORS[name]
+    if name.startswith("rest"):
+        return "#cbd5e1"
+    return "#a78bfa"
 
 
 def _mmss_labels(t_sec: np.ndarray) -> list[str]:

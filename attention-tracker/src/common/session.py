@@ -1,4 +1,4 @@
-"""LYS continuous EEG session object."""
+"""Continuous EEG session object (LYS Flow or other adapters)."""
 
 from __future__ import annotations
 
@@ -11,57 +11,55 @@ CANONICAL_CHANNELS: tuple[str, str, str, str] = ("AF4", "AF3", "FCz", "CPz")
 
 @dataclass(frozen=True)
 class EEGSession:
-    """One LYS Flow 4-channel EEG recording.
+    """One continuous EEG recording.
+
+    LYS Flow sessions still use channels AF4, AF3, FCz, CPz in that order.
+    Other adapters (e.g. OpenBCI) may use any channel count and names.
 
     Attributes:
-        data: Samples x channels, shape (n_samples, 4), float64.
+        data: Samples x channels, shape (n_samples, n_channels), float64.
         fs: Sampling rate in Hz.
-        ch_names: Always AF4, AF3, FCz, CPz in that order.
+        ch_names: Channel names; length must match ``data.shape[1]``.
         time: Sample times in seconds, shape (n_samples,).
         subject_id: e.g. \"P33\".
-        study_id: LYS study / file descriptor id.
+        study_id: Study / file descriptor id.
         phases: Named intervals in seconds on the same axis as ``time``,
-            e.g. {\"baseline\": (t0, t1), \"localizer\": (...), \"task\": (...)}.
+            e.g. {\"baseline\": (t0, t1), \"listen\": (...), \"wander\": (...)}.
             Empty dict if no protocol log was provided.
-        source_path: Path to the .npz this was loaded from.
-
-        example:
-    data.shape  : (644381, 4)  dtype=float64
-    fs           : 500.000158 Hz
-    ch_names     : ('AF4', 'AF3', 'FCz', 'CPz')
-    time[0],[-1] : -0.246646, 1288.512947
-    subject_id   : P33
-    study_id     : bb05ebe
-    phases       :
-        baseline  [    3.38,    63.40]  (60.0 s)
-        localizer [   63.40,   231.87]  (168.5 s)
-        task      [  233.48,  1284.67]  (1051.2 s)
-    source_path  : ...
+        source_path: Path this was loaded from.
+        meta: Adapter-specific extras (dropped channels, board, …).
     """
 
     data: np.ndarray
     fs: float
-    ch_names: tuple[str, str, str, str]
-    time: np.ndarray  # -0.246646, 1288.512947
+    ch_names: tuple[str, ...]
+    time: np.ndarray
     subject_id: str
     study_id: str
     phases: dict[str, tuple[float, float]] = field(default_factory=dict)
     source_path: str = ""
+    meta: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "data", np.asarray(self.data, dtype=np.float64))
         object.__setattr__(self, "time", np.asarray(self.time, dtype=np.float64))
         object.__setattr__(self, "fs", float(self.fs))
         object.__setattr__(self, "ch_names", tuple(self.ch_names))
+        object.__setattr__(self, "phases", dict(self.phases))
+        object.__setattr__(self, "meta", dict(self.meta))
         self.validate()
 
     def validate(self) -> None:
-        if self.data.ndim != 2 or self.data.shape[1] != 4:
-            raise ValueError(f"data must be (n, 4), got {self.data.shape}")
-        if self.ch_names != CANONICAL_CHANNELS:
+        if self.data.ndim != 2 or self.data.shape[1] < 1:
+            raise ValueError(f"data must be (n, n_ch>=1), got {self.data.shape}")
+        if len(self.ch_names) != self.data.shape[1]:
             raise ValueError(
-                f"ch_names must be {CANONICAL_CHANNELS}, got {self.ch_names}"
+                f"ch_names length {len(self.ch_names)} != n_channels {self.data.shape[1]}"
             )
+        if len(set(self.ch_names)) != len(self.ch_names):
+            raise ValueError(f"duplicate channel names: {self.ch_names}")
+        if any(not str(n) for n in self.ch_names):
+            raise ValueError(f"channel names must be non-empty strings, got {self.ch_names}")
         if self.fs <= 0:
             raise ValueError(f"fs must be > 0, got {self.fs}")
         if self.time.shape != (self.data.shape[0],):
@@ -89,6 +87,10 @@ class EEGSession:
         return int(self.data.shape[0])
 
     @property
+    def n_channels(self) -> int:
+        return int(self.data.shape[1])
+
+    @property
     def duration_sec(self) -> float:
         if self.n_samples < 2:
             return 0.0
@@ -111,6 +113,7 @@ class EEGSession:
             "study_id": self.study_id,
             "phases": self.phases,
             "source_path": self.source_path,
+            "meta": self.meta,
         }
         base.update(kwargs)
         return EEGSession(**base)

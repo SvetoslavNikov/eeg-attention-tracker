@@ -78,6 +78,7 @@ def load_lys(
         study_id=study_id,
         phases=phases,
         source_path=str(npz_path.resolve()),
+        meta={},
     )
 
 

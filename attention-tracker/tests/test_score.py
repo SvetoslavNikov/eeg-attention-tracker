@@ -39,3 +39,24 @@ def test_low_alpha_raises_score_vs_high_alpha():
     first = result.attention[result.t < 60]
     second = result.attention[result.t >= 62]
     assert second.mean() > first.mean()
+    assert result.channels == ("AF3", "AF4")
+
+
+def test_falls_back_to_all_channels_without_af():
+    fs = 500.0
+    dur = 40.0
+    t = np.arange(0, dur, 1.0 / fs)
+    n = len(t)
+    x = np.sin(2 * np.pi * 10.0 * t)
+    session = EEGSession(
+        data=np.column_stack([x, x * 0.5, x * 0.7]),
+        fs=fs,
+        ch_names=("Ch00", "Ch01", "Ch02"),
+        time=t,
+        subject_id="syn",
+        study_id="obci",
+        phases={"baseline": (0.0, 10.0)},
+    )
+    result = score_attention(session, window_sec=2.0, hop_sec=0.5)
+    assert result.channels == ("Ch00", "Ch01", "Ch02")
+    assert np.isfinite(result.attention).all()
